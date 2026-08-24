@@ -36,9 +36,21 @@ app.use("/api", requireAuth);
 app.use("/api/db", require("./routes/db"));
 app.use("/api/players", require("./routes/players"));
 app.use("/api/matches", require("./routes/matches"));
+app.get(["/", "/index.html"], (req, res) => {
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+app.get("/service-worker.js", (req, res) => {
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.sendFile(path.join(__dirname, "public", "service-worker.js"));
+});
 app.use(express.static(path.join(__dirname, "public"), {
   maxAge: process.env.NODE_ENV === "production" ? "1h" : 0,
-  etag: true
+  etag: true,
+  setHeaders(res, filePath) {
+    if (filePath.endsWith("manifest.webmanifest"))
+      res.setHeader("Cache-Control", "no-cache, must-revalidate");
+  }
 }));
 
 app.get("/api", (req, res) => res.json({ status: true, message: "BRICKSCORE Football API Online" }));
