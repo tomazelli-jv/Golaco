@@ -1,0 +1,16 @@
+{
+  "name": "brickscore-football",
+  "version": "0.1.0",
+  "description": "BRICKSCORE para Futebol, Futsal e Society",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^4.21.2",
+    "mysql2": "^3.14.3"
+  }
+}

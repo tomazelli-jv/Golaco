@@ -1,0 +1,129 @@
+
+/* BRICKSCORE Football — complementos sobre o visual original */
+
+.football-modality-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.football-choice {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  border-radius: 14px;
+  padding: 14px 8px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+.football-choice-code {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 900;
+}
+.football-choice.active {
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.football-muted {
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0 0 12px;
+}
+
+.football-stat-row {
+  display: grid;
+  grid-template-columns: minmax(100px, 1.5fr) repeat(4, minmax(48px, .55fr));
+  gap: 6px;
+  align-items: end;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.football-player-name {
+  font-size: 13px;
+  font-weight: 800;
+  align-self: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.football-stat-row label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.football-stat-row label span {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-weight: 800;
+}
+.football-stat-row input {
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+  padding: 9px 4px;
+}
+
+.football-match-hero {
+  background: linear-gradient(145deg, rgba(255,122,26,.12), rgba(255,255,255,.02));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px 16px;
+  margin-bottom: 18px;
+}
+.football-match-meta {
+  color: var(--text-dim);
+  text-align: center;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 16px;
+}
+.football-big-score {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+  text-align: center;
+}
+.football-big-score span {
+  font-weight: 800;
+  font-size: 14px;
+}
+.football-big-score strong {
+  font-size: clamp(28px, 8vw, 44px);
+  color: var(--text);
+  letter-spacing: -.04em;
+}
+.football-detail-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.football-detail-actions > * { flex: 1; }
+
+@media (max-width: 480px) {
+  .football-modality-grid { grid-template-columns: 1fr; }
+  .football-choice { flex-direction: row; justify-content: center; padding: 11px; }
+  .football-choice-code { width: 26px; height: 26px; }
+  .football-stat-row {
+    grid-template-columns: minmax(78px, 1.25fr) repeat(4, minmax(40px, .5fr));
+    gap: 4px;
+  }
+  .football-stat-row input { padding: 8px 2px; font-size: 13px; }
+  .football-player-name { font-size: 12px; }
+}
