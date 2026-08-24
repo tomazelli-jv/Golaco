@@ -178,6 +178,71 @@ const Toast = {
   }
 };
 
+const Share = {
+  matchText(match) {
+    const mvpIds = match.mvpId ? [match.mvpId] : (Array.isArray(match.mvpTie) ? match.mvpTie : []);
+    const mvpNames = mvpIds.map((id) => Players.byId(id)?.name).filter(Boolean);
+    const highlights = [...match.teamAIds, ...match.teamBIds].map((id) => {
+      const player = Players.byId(id);
+      const stat = Stats.normalizeStat(match.stats?.[id]);
+      if (!player || (!stat.goals && !stat.assists && !stat.yellowCards && !stat.redCards)) return null;
+      const values = [];
+      if (stat.goals) values.push(`${stat.goals} ${stat.goals === 1 ? 'gol' : 'gols'}`);
+      if (stat.assists) values.push(`${stat.assists} ${stat.assists === 1 ? 'assistência' : 'assistências'}`);
+      if (stat.yellowCards) values.push(`${stat.yellowCards} CA`);
+      if (stat.redCards) values.push(`${stat.redCards} CV`);
+      return `${player.name}: ${values.join(', ')}`;
+    }).filter(Boolean);
+    const winner = match.winner === 'draw' ? 'Empate' : `Vencedor: ${match.winner === 'A' ? match.teamA : match.teamB}`;
+
+    return [
+      DB.data.leagueName,
+      '',
+      `${match.teamA} ${match.scoreA} x ${match.scoreB} ${match.teamB}`,
+      `${Utils.modalityLabel(match.modality)} | ${match.format}`,
+      Utils.formatDateTime(match.date),
+      match.location ? `Local: ${match.location}` : null,
+      winner,
+      mvpNames.length ? `MVP: ${mvpNames.join(' / ')}` : null,
+      highlights.length ? '' : null,
+      highlights.length ? 'Destaques:' : null,
+      ...highlights.map((line) => `- ${line}`),
+      '',
+      'Gerado pelo GOLAÇO!score'
+    ].filter((line) => line !== null).join('\n');
+  },
+
+  async text(title, text) {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text });
+        return;
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const field = document.createElement('textarea');
+      field.value = text;
+      field.setAttribute('readonly', '');
+      field.style.position = 'fixed';
+      field.style.opacity = '0';
+      document.body.appendChild(field);
+      field.select();
+      document.execCommand('copy');
+      field.remove();
+    }
+    Toast.show('Resumo copiado para compartilhar.');
+  },
+
+  match(match) {
+    return this.text(`Resultado: ${match.teamA} x ${match.teamB}`, this.matchText(match));
+  }
+};
+
 const DB = (() => {
   const defaultState = () => {
     const year = new Date().getFullYear();
@@ -893,6 +958,7 @@ const LiveMatch = {
   interval: null,
   running: false,
   startedAt: 0,
+  panel: null,
 
   elapsed() {
     const base = Number(MatchWizard.state?.durationSeconds) || 0;
@@ -909,6 +975,7 @@ const LiveMatch = {
     const s = MatchWizard.state;
     if (!s) return;
     if (!Array.isArray(s.events)) s.events = [];
+    this.panel = null;
     this.running = true;
     this.startedAt = Date.now();
     document.getElementById('mw-title').textContent = 'Partida ao vivo';
@@ -957,6 +1024,41 @@ const LiveMatch = {
     s.scoreBManual = false;
   },
 
+  goalPicker(team) {
+    const s = MatchWizard.state;
+    const ids = team === 'A' ? s.teamAIds : s.teamBIds;
+    const options = ids.map((id) => `<option value="${id}">${Utils.escapeHtml(Players.byId(id)?.name || 'Jogador')}</option>`).join('');
+    return `<div class="live-goal-picker">
+      <div class="live-picker-head"><strong>Gol do ${Utils.escapeHtml(team === 'A' ? s.teamAName : s.teamBName)}</strong><button type="button" class="btn-ghost" id="live-picker-close">Fechar</button></div>
+      <label>Autor do gol<select id="live-goal-scorer"><option value="">Selecione o jogador</option>${options}</select></label>
+      <label>Assistência<select id="live-goal-assist"><option value="">Sem assistência</option>${options}</select></label>
+      <button type="button" class="btn-primary" id="live-goal-confirm">Confirmar gol</button>
+    </div>`;
+  },
+
+  addGoal(team) {
+    const s = MatchWizard.state;
+    const scorerId = document.getElementById('live-goal-scorer')?.value;
+    const assistId = document.getElementById('live-goal-assist')?.value;
+    if (!scorerId) return Toast.show('Selecione quem fez o gol.');
+    if (assistId === scorerId) return Toast.show('O autor do gol não pode dar a própria assistência.');
+    const at = this.elapsed();
+    const goalId = Utils.uid();
+    const scorerStat = Stats.normalizeStat(s.statsMap[scorerId]);
+    scorerStat.goals += 1;
+    s.statsMap[scorerId] = scorerStat;
+    s.events.push({ id: goalId, type: 'goal', playerId: scorerId, team, at });
+    if (assistId) {
+      const assistStat = Stats.normalizeStat(s.statsMap[assistId]);
+      assistStat.assists += 1;
+      s.statsMap[assistId] = assistStat;
+      s.events.push({ id: Utils.uid(), type: 'assist', playerId: assistId, team, at, relatedGoalId: goalId });
+    }
+    this.panel = null;
+    this.syncScore();
+    this.paint();
+  },
+
   addEvent(playerId, type) {
     const s = MatchWizard.state;
     const stat = Stats.normalizeStat(s.statsMap[playerId]);
@@ -973,27 +1075,47 @@ const LiveMatch = {
     const s = MatchWizard.state;
     const event = s.events.pop();
     if (!event) return;
-    const stat = Stats.normalizeStat(s.statsMap[event.playerId]);
-    const field = ({ goal: 'goals', assist: 'assists', yellow: 'yellowCards', red: 'redCards' })[event.type];
-    if (field) stat[field] = Math.max(0, stat[field] - 1);
-    s.statsMap[event.playerId] = stat;
+    const removeStat = (item) => {
+      const stat = Stats.normalizeStat(s.statsMap[item.playerId]);
+      const field = ({ goal: 'goals', assist: 'assists', yellow: 'yellowCards', red: 'redCards' })[item.type];
+      if (field) stat[field] = Math.max(0, stat[field] - 1);
+      s.statsMap[item.playerId] = stat;
+    };
+    removeStat(event);
+    if (event.type === 'assist' && event.relatedGoalId) {
+      const goalIndex = s.events.findIndex((item) => item.id === event.relatedGoalId);
+      if (goalIndex >= 0) removeStat(s.events.splice(goalIndex, 1)[0]);
+    }
     this.syncScore();
     this.paint();
   },
 
-  playerControls(ids) {
+  cardControls(ids) {
     return ids.map((id) => {
       const player = Players.byId(id);
       const stat = Stats.normalizeStat(MatchWizard.state.statsMap[id]);
       return `<div class="live-player-row">
-        <div class="live-player-info">${Utils.avatarHtml(player || { name: '?' }, 'sm')}<div><strong>${Utils.escapeHtml(player?.name || 'Jogador')}</strong><span>${stat.goals} G · ${stat.assists} A · ${stat.yellowCards} CA · ${stat.redCards} CV</span></div></div>
+        <div class="live-player-info">${Utils.avatarHtml(player || { name: '?' }, 'sm')}<div><strong>${Utils.escapeHtml(player?.name || 'Jogador')}</strong><span>${stat.yellowCards} CA · ${stat.redCards} CV</span></div></div>
         <div class="live-actions">
-          <button type="button" data-live-player="${id}" data-live-type="goal">Gol</button>
-          <button type="button" data-live-player="${id}" data-live-type="assist">Assist.</button>
           <button type="button" data-live-player="${id}" data-live-type="yellow">CA</button>
           <button type="button" data-live-player="${id}" data-live-type="red">CV</button>
         </div>
       </div>`;
+    }).join('');
+  },
+
+  assistForGoal(goal, events = MatchWizard.state.events) {
+    return events.find((event) => event.type === 'assist' && event.relatedGoalId === goal.id);
+  },
+
+  goalLines(team) {
+    const goals = MatchWizard.state.events.filter((event) => event.type === 'goal' && event.team === team);
+    if (!goals.length) return '<p>Nenhum gol.</p>';
+    return goals.map((goal) => {
+      const scorer = Players.byId(goal.playerId)?.name || 'Jogador';
+      const assist = this.assistForGoal(goal);
+      const assistName = assist ? Players.byId(assist.playerId)?.name : '';
+      return `<div><span>${Math.floor(goal.at / 60)}'</span><strong>${Utils.escapeHtml(scorer)}${assistName ? ` <small>(${Utils.escapeHtml(assistName)})</small>` : ''}</strong></div>`;
     }).join('');
   },
 
@@ -1006,25 +1128,34 @@ const LiveMatch = {
     const body = document.getElementById('mw-body');
     const footer = document.getElementById('mw-footer');
     if (!body || !footer) return;
-    const recent = s.events.slice().reverse().slice(0, 10);
+    const recent = s.events.filter((event) => event.type !== 'assist').slice().reverse().slice(0, 10);
     body.innerHTML = `
       <div class="live-scoreboard">
         <div><span>${Utils.escapeHtml(s.teamAName)}</span><strong>${s.scoreA}</strong></div>
         <div class="live-clock-wrap"><span id="live-clock">${this.formatTime(this.elapsed())}</span><button type="button" id="live-clock-toggle">${this.running ? 'Pausar' : 'Continuar'}</button></div>
         <div><span>${Utils.escapeHtml(s.teamBName)}</span><strong>${s.scoreB}</strong></div>
       </div>
-      <div class="section-sub">${Utils.escapeHtml(s.teamAName)}</div>
-      <div class="live-roster">${this.playerControls(s.teamAIds)}</div>
-      <div class="section-sub">${Utils.escapeHtml(s.teamBName)}</div>
-      <div class="live-roster">${this.playerControls(s.teamBIds)}</div>
+      <div class="live-goals-board">
+        <div><button type="button" class="live-goal-button" data-goal-team="A">GOL</button><div class="live-goal-lines">${this.goalLines('A')}</div></div>
+        <div><button type="button" class="live-goal-button" data-goal-team="B">GOL</button><div class="live-goal-lines">${this.goalLines('B')}</div></div>
+      </div>
+      ${this.panel === 'goalA' ? this.goalPicker('A') : this.panel === 'goalB' ? this.goalPicker('B') : ''}
+      <button type="button" class="live-cards-toggle" id="live-cards-toggle">${this.panel === 'cards' ? 'Ocultar cartões' : 'Registrar cartões'}</button>
+      ${this.panel === 'cards' ? `<div class="live-cards-panel"><div class="section-sub">${Utils.escapeHtml(s.teamAName)}</div><div class="live-roster">${this.cardControls(s.teamAIds)}</div><div class="section-sub">${Utils.escapeHtml(s.teamBName)}</div><div class="live-roster">${this.cardControls(s.teamBIds)}</div></div>` : ''}
       <div class="live-history-head"><div class="section-sub">Eventos</div><button type="button" class="btn-ghost" id="live-undo" ${s.events.length ? '' : 'disabled'}>Desfazer último</button></div>
       <div class="live-history">${recent.length ? recent.map((event) => {
         const player = Players.byId(event.playerId);
-        return `<div><time>${this.formatTime(event.at)}</time><span>${this.eventLabel(event)}</span><strong>${Utils.escapeHtml(player?.name || 'Jogador')}</strong></div>`;
+        const assist = event.type === 'goal' ? this.assistForGoal(event) : null;
+        const assistName = assist ? Players.byId(assist.playerId)?.name : '';
+        return `<div><time>${this.formatTime(event.at)}</time><span>${this.eventLabel(event)}</span><strong>${Utils.escapeHtml(player?.name || 'Jogador')}${assistName ? ` (${Utils.escapeHtml(assistName)})` : ''}</strong></div>`;
       }).join('') : '<p>Nenhum evento registrado.</p>'}</div>`;
     footer.innerHTML = `<button class="btn-secondary" type="button" id="live-back">Voltar</button><button class="btn-primary" type="button" id="live-finish" style="flex:1;">Finalizar partida</button>`;
     document.getElementById('live-clock-toggle').onclick = () => this.toggleClock();
     document.getElementById('live-undo').onclick = () => this.undo();
+    body.querySelectorAll('[data-goal-team]').forEach((button) => button.onclick = () => { this.panel = `goal${button.dataset.goalTeam}`; this.paint(); });
+    document.getElementById('live-picker-close')?.addEventListener('click', () => { this.panel = null; this.paint(); });
+    document.getElementById('live-goal-confirm')?.addEventListener('click', () => this.addGoal(this.panel === 'goalA' ? 'A' : 'B'));
+    document.getElementById('live-cards-toggle').onclick = () => { this.panel = this.panel === 'cards' ? null : 'cards'; this.paint(); };
     body.querySelectorAll('[data-live-player]').forEach((button) => button.onclick = () => this.addEvent(button.dataset.livePlayer, button.dataset.liveType));
     document.getElementById('live-back').onclick = () => {
       this.stop();
@@ -1212,9 +1343,11 @@ const UI = {
         <div class="row-sub">${s.goals} gols · ${s.assists} ast · ${s.yellowCards} CA · ${s.redCards} CV</div></div>
       </div>`;
     }).join('');
-    const timeline = Array.isArray(m.events) ? m.events.slice().reverse().map((event) => {
+    const timeline = Array.isArray(m.events) ? m.events.filter((event) => event.type !== 'assist' || !event.relatedGoalId).slice().reverse().map((event) => {
       const player = Players.byId(event.playerId);
-      return `<div class="live-detail-event"><time>${LiveMatch.formatTime(Number(event.at) || 0)}</time><span>${LiveMatch.eventLabel(event)}</span><strong>${Utils.escapeHtml(player?.name || 'Jogador')}</strong></div>`;
+      const assist = event.type === 'goal' ? LiveMatch.assistForGoal(event, m.events) : null;
+      const assistName = assist ? Players.byId(assist.playerId)?.name : '';
+      return `<div class="live-detail-event"><time>${LiveMatch.formatTime(Number(event.at) || 0)}</time><span>${LiveMatch.eventLabel(event)}</span><strong>${Utils.escapeHtml(player?.name || 'Jogador')}${assistName ? ` (${Utils.escapeHtml(assistName)})` : ''}</strong></div>`;
     }).join('') : '';
 
     wrap.innerHTML = `
@@ -1226,9 +1359,11 @@ const UI = {
       <div class="section-sub">${Utils.escapeHtml(m.teamB)}</div><div class="card list-card">${roster(m.teamBIds)}</div>
       ${timeline ? `<div class="section-sub">Linha do tempo · ${LiveMatch.formatTime(Number(m.durationSeconds) || 0)}</div><div class="card live-detail-history">${timeline}</div>` : ''}
       <div class="football-detail-actions">
+        <button class="btn-primary" id="md-share">Compartilhar</button>
         <button class="btn-secondary" id="md-edit">Editar partida</button>
         <button class="btn-danger" id="md-delete">Excluir</button>
       </div>`;
+    document.getElementById('md-share').onclick = () => Share.match(m);
     document.getElementById('md-edit').onclick = () => MatchWizard.open(m.id);
     document.getElementById('md-delete').onclick = () => Modal.confirm(
       'Excluir partida', 'Esta partida será removida do histórico e dos rankings.',

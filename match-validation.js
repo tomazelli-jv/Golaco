@@ -66,6 +66,10 @@ function validateMatch(match, { requireId = false } = {}) {
           !validEventTypes.has(event.type) || !roster.includes(event.playerId) ||
           !["A", "B"].includes(event.team) || !isNonNegativeInteger(event.at))
         return "O histórico contém um evento inválido.";
+      if (event.relatedGoalId !== undefined &&
+          (event.type !== "assist" || !isId(event.relatedGoalId) ||
+           !match.events.some((goal) => goal.id === event.relatedGoalId && goal.type === "goal" && goal.team === event.team)))
+        return "O vínculo entre gol e assistência é inválido.";
     }
   }
   if (match.durationSeconds !== undefined && !isNonNegativeInteger(match.durationSeconds))
