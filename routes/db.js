@@ -43,7 +43,7 @@ router.get("/backup", async (req, res) => {
         res.json({
             ...state,
             version: 3,
-            app: "brickscore-football",
+            app: "golaco-score",
             exportedAt: new Date().toISOString(),
             players: players.map((p) => ({
                 id: p.id, name: p.name, photo: p.photo, active: Boolean(p.active),

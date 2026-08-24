@@ -1,11 +1,11 @@
-const CACHE_NAME = 'brickscore-football-v12';
+const CACHE_NAME = 'golaco-score-v13';
 const APP_SHELL = [
   './',
   './index.html',
   './style.css?v=2',
   './football.css?v=2',
   './theme-football.css?v=3',
-  './app.js?v=football-v11',
+  './app.js?v=golaco-v13',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/intro-football.png?v=1',

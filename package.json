@@ -1,7 +1,7 @@
 {
-  "name": "brickscore-football",
+  "name": "golaco-score",
   "version": "0.1.0",
-  "description": "BRICKSCORE para Futebol, Futsal e Society",
+  "description": "GOLAÇO!score para Futebol, Futsal e Society",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -53,7 +53,7 @@ app.use(express.static(path.join(__dirname, "public"), {
   }
 }));
 
-app.get("/api", (req, res) => res.json({ status: true, message: "BRICKSCORE Football API Online" }));
+app.get("/api", (req, res) => res.json({ status: true, message: "GOLAÇO!score API Online" }));
 app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
 const PORT = process.env.PORT || 3000;

@@ -1,6 +1,6 @@
 {
-  "name": "BRICKSCORE Football",
-  "short_name": "BRICKSCORE",
+  "name": "GOLAÇO!score",
+  "short_name": "GOLAÇO",
   "description": "Estatísticas para Futebol, Futsal e Society",
   "start_url": "./",
   "scope": "./",

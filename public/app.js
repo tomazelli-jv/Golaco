@@ -1,15 +1,15 @@
 /* =============================================================
-   BRICKSCORE FOOTBALL — football-v1
+   GOLAÇO!score — football-v1
    Futebol, Futsal e Society
    ============================================================= */
 'use strict';
 
 const API_BASE = ['127.0.0.1', 'localhost'].includes(location.hostname) && location.port === '5500'
-  ? 'https://brickscore.tomaz.host'
+  ? 'https://xn--golao-1ra.tomaz.host'
   : '';
 
 const Auth = {
-  token: localStorage.getItem('brickscoreAuthToken') || '',
+  token: localStorage.getItem('golacoScoreAuthToken') || '',
   showLogin(message = '') {
     document.getElementById('authenticated-app').classList.add('hidden');
     document.getElementById('login-screen').classList.remove('hidden');
@@ -43,11 +43,11 @@ const Auth = {
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.token) throw new Error(data.error || 'Não foi possível entrar.');
     this.token = data.token;
-    localStorage.setItem('brickscoreAuthToken', data.token);
+    localStorage.setItem('golacoScoreAuthToken', data.token);
   },
   logout(showMessage = true) {
     this.token = '';
-    localStorage.removeItem('brickscoreAuthToken');
+    localStorage.removeItem('golacoScoreAuthToken');
     Modal.close();
     this.showLogin(showMessage ? 'Sessão encerrada.' : '');
   }
@@ -72,7 +72,7 @@ window.addEventListener('beforeinstallprompt', (event) => {
 window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
   document.getElementById('btn-install-app')?.classList.add('hidden');
-  Toast.show('BRICKSCORE instalado!');
+  Toast.show('GOLAÇO!score instalado!');
 });
 
 const Utils = {
@@ -184,7 +184,7 @@ const DB = (() => {
     return {
       seasons: [year],
       currentSeason: year,
-      leagueName: 'BRICKSCORE FOOTBALL'
+      leagueName: 'GOLAÇO!score'
     };
   };
 
@@ -204,7 +204,10 @@ const DB = (() => {
         delete state.matches;
         if (!Array.isArray(state.seasons) || !state.seasons.length) state.seasons = [new Date().getFullYear()];
         if (!state.currentSeason) state.currentSeason = state.seasons[state.seasons.length - 1];
-        if (!state.leagueName) state.leagueName = 'BRICKSCORE FOOTBALL';
+        if (!state.leagueName || /^BRICK!?SCORE FOOTBALL$/i.test(state.leagueName)) {
+          state.leagueName = 'GOLAÇO!score';
+          await save();
+        }
       }
     } catch (err) {
       console.error(err);
@@ -910,7 +913,7 @@ const Router = {
 
 const UI = {
   header() {
-    document.getElementById('league-name-label').textContent = DB.data.leagueName.toUpperCase();
+    document.getElementById('league-name-label').textContent = DB.data.leagueName;
     document.getElementById('btn-profile').textContent = Utils.initials(DB.data.leagueName).slice(0, 1);
     const heroSeason = document.getElementById('hero-season');
     if (heroSeason) heroSeason.textContent = DB.data.currentSeason;
@@ -1104,7 +1107,7 @@ const UI = {
     const input = document.getElementById('settings-league-name');
     input.value = DB.data.leagueName;
     input.onchange = async () => {
-      DB.data.leagueName = input.value.trim() || 'BRICKSCORE FOOTBALL';
+      DB.data.leagueName = input.value.trim() || 'GOLAÇO!score';
       await DB.save(); UI.header(); Toast.show('Nome atualizado.');
     };
   }
@@ -1142,7 +1145,7 @@ const DataTransfer = {
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `brickscore-football-${Utils.todayISO()}.json`;
+    a.href = url; a.download = `golaco-score-${Utils.todayISO()}.json`;
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   },
   async import(file) {

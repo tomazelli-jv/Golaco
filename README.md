@@ -1,6 +1,6 @@
-# BRICKSCORE Football — V0.1
+# GOLAÇO!score — V0.1
 
-Primeira versão do BRICKSCORE para **Futebol, Futsal e Society**.
+Sistema GOLAÇO!score para **Futebol, Futsal e Society**.
 
 ## Recursos desta versão
 - Futebol, Futsal e Society
@@ -23,7 +23,7 @@ Primeira versão do BRICKSCORE para **Futebol, Futsal e Society**.
 5. Execute `npm start`.
 6. Acesse a porta configurada, por padrão `http://localhost:3000`, e entre com o usuário administrativo.
 
-Esta versão é separada do BRICKSCORE de basquete.
+Esta aplicação foi desenvolvida especialmente para futebol, futsal e society.
 
 ## Publicação na Hostinger
 
