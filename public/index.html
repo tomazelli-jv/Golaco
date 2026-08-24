@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="BRICKSCORE Football">
@@ -10,21 +11,21 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=2">
 <link rel="stylesheet" href="football.css?v=2">
 </head>
 <body>
 
-<div id="toast-root" class="toast-root"></div>
+<div id="toast-root" class="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <section class="login-screen" id="login-screen">
   <form class="login-card" id="login-form">
     <div class="eyebrow">ACESSO ADMINISTRATIVO</div>
     <div class="hero-logo">BRICK<span class="accent">!</span>score</div>
     <p class="football-muted">Entre para acessar jogadores, partidas e configurações.</p>
-    <div class="field"><label>Usuário</label><input id="login-username" name="username" autocomplete="username" required></div>
-    <div class="field"><label>Senha</label><input id="login-password" name="password" type="password" autocomplete="current-password" required></div>
-    <div class="login-error hidden" id="login-error" role="alert"></div>
+    <div class="field"><label for="login-username">Usuário</label><input id="login-username" name="username" type="text" autocomplete="username" required></div>
+    <div class="field"><label for="login-password">Senha</label><input id="login-password" name="password" type="password" autocomplete="current-password" required></div>
+    <div class="login-error hidden" id="login-error" role="alert" aria-live="polite"></div>
     <button class="btn-primary" id="login-submit" type="submit">Entrar</button>
   </form>
 </section>
@@ -34,7 +35,7 @@
     <div class="brand">
       <span class="eyebrow" id="league-name-label">BRICKSCORE FOOTBALL</span>
     </div>
-    <button class="avatar-btn" id="btn-profile" title="Configurações">B</button>
+    <button class="avatar-btn" id="btn-profile" type="button" title="Configurações" aria-label="Abrir configurações">B</button>
   </header>
 
   <main id="view-root" class="view-root">
@@ -44,25 +45,25 @@
         <div class="hero-logo">BRICK<span class="accent">!</span>score</div>
         <h1 class="hero-headline">Futebol, futsal e society dos amigos.</h1>
         <p class="hero-sub">Registre partidas, gols, assistências e cartões. O ranking se atualiza sozinho.</p>
-        <button class="btn-primary hero-cta" id="btn-open-register">+ Registrar partida</button>
+        <button class="btn-primary hero-cta" id="btn-open-register" type="button">+ Registrar partida</button>
       </div>
 
       <div class="section-title">
         <h2>Resumo</h2>
-        <a class="link" data-nav="ranking">ver ranking →</a>
+        <button class="link" type="button" data-nav="ranking">Ver ranking</button>
       </div>
       <div class="stat-grid" id="home-today-summary"></div>
-      <div class="stat-grid mt" id="home-overall-summary" style="margin-top:10px;"></div>
+      <div class="stat-grid mt" id="home-overall-summary"></div>
 
       <div class="section-title mt">
         <h2>Artilharia</h2>
-        <a class="link" data-nav="ranking">ver tudo</a>
+        <button class="link" type="button" data-nav="ranking">Ver tudo</button>
       </div>
       <div class="card list-card" id="home-ranking"></div>
 
       <div class="section-title mt">
         <h2>Últimas partidas</h2>
-        <a class="link" data-nav="matches">ver todas →</a>
+        <button class="link" type="button" data-nav="matches">Ver todas</button>
       </div>
       <div class="card list-card" id="home-recent-matches"></div>
     </section>
@@ -70,31 +71,31 @@
     <section id="view-players" class="view hidden">
       <div class="section-title">
         <h1>Jogadores</h1>
-        <button class="btn-chip" id="btn-add-player">+ Novo</button>
+        <button class="btn-chip" id="btn-add-player" type="button">+ Novo</button>
       </div>
       <div class="search-wrap">
-        <input type="text" id="player-search" placeholder="Buscar jogador...">
+        <input type="search" id="player-search" placeholder="Buscar jogador..." aria-label="Buscar jogador">
       </div>
       <div class="card list-card" id="players-list"></div>
     </section>
 
     <section id="view-player-profile" class="view hidden">
-      <button class="back-btn" data-nav="players">‹ Jogadores</button>
+      <button class="back-btn" type="button" data-nav="players">Voltar para jogadores</button>
       <div id="profile-content"></div>
     </section>
 
     <section id="view-matches" class="view hidden">
       <div class="section-title">
         <h1>Partidas</h1>
-        <button class="btn-chip" id="btn-open-register-2">+ Registrar</button>
+        <button class="btn-chip" id="btn-open-register-2" type="button">+ Registrar</button>
       </div>
-      <div class="filter-row" id="matches-season-filter"></div>
-      <div class="filter-row" id="matches-modality-filter"></div>
+      <div class="filter-row" id="matches-season-filter" aria-label="Filtrar partidas por temporada"></div>
+      <div class="filter-row" id="matches-modality-filter" aria-label="Filtrar partidas por modalidade"></div>
       <div class="card list-card" id="matches-list"></div>
     </section>
 
     <section id="view-match-detail" class="view hidden">
-      <button class="back-btn" data-nav="matches">‹ Partidas</button>
+      <button class="back-btn" type="button" data-nav="matches">Voltar para partidas</button>
       <div id="match-detail-content"></div>
     </section>
 
@@ -102,61 +103,61 @@
       <div class="section-title">
         <h1>Ranking</h1>
       </div>
-      <div class="filter-row" id="ranking-period-filter"></div>
-      <div class="filter-row" id="ranking-modality-filter"></div>
-      <div class="filter-row" id="ranking-type-filter"></div>
+      <div class="filter-row" id="ranking-period-filter" aria-label="Filtrar ranking por período"></div>
+      <div class="filter-row" id="ranking-modality-filter" aria-label="Filtrar ranking por modalidade"></div>
+      <div class="filter-row" id="ranking-type-filter" aria-label="Selecionar tipo de ranking"></div>
       <div class="card list-card" id="ranking-list"></div>
     </section>
 
     <section id="view-settings" class="view hidden">
-      <button class="back-btn" data-nav="home">‹ Início</button>
+      <button class="back-btn" type="button" data-nav="home">Voltar para o início</button>
       <div class="section-title"><h1>Configurações</h1></div>
 
       <div class="field">
-        <label>Nome da liga</label>
+        <label for="settings-league-name">Nome da liga</label>
         <input type="text" id="settings-league-name" placeholder="Ex: Pelada de Quinta" maxlength="60">
       </div>
 
       <div class="card settings-card">
-        <div class="settings-row" id="btn-install-app">
+        <button class="settings-row" id="btn-install-app" type="button">
           <span>Instalar BRICKSCORE</span><span class="chev">›</span>
-        </div>
-        <div class="settings-row" id="btn-manage-seasons">
+        </button>
+        <button class="settings-row" id="btn-manage-seasons" type="button">
           <span>Temporadas</span><span class="chev">›</span>
-        </div>
-        <div class="settings-row" id="btn-export">
+        </button>
+        <button class="settings-row" id="btn-export" type="button">
           <span>Exportar backup</span><span class="chev">›</span>
-        </div>
-        <div class="settings-row" id="btn-import">
+        </button>
+        <button class="settings-row" id="btn-import" type="button">
           <span>Importar backup</span><span class="chev">›</span>
-        </div>
-        <div class="settings-row" id="btn-logout">
+        </button>
+        <button class="settings-row" id="btn-logout" type="button">
           <span>Sair da conta</span><span class="chev">›</span>
-        </div>
-        <div class="settings-row danger" id="btn-reset">
+        </button>
+        <button class="settings-row danger" id="btn-reset" type="button">
           <span>Apagar todos os dados</span><span class="chev">›</span>
-        </div>
+        </button>
       </div>
       <input type="file" id="import-file" accept="application/json" hidden>
       <p class="fine-print">BRICKSCORE Football v0.1 · branch football-v1</p>
     </section>
   </main>
 
-  <nav class="bottom-nav">
-    <button class="nav-item active" data-nav="home">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+  <nav class="bottom-nav" aria-label="Navegação principal">
+    <button class="nav-item active" type="button" data-nav="home">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
       <span>Início</span>
     </button>
-    <button class="nav-item" data-nav="ranking">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M6 20V11M12 20V4M18 20v-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <button class="nav-item" type="button" data-nav="ranking">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M6 20V11M12 20V4M18 20v-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       <span>Ranking</span>
     </button>
-    <button class="nav-item" data-nav="matches">
-      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2"/><path d="M12 3.5v17M3.5 12h17M6 6.3c1.6 1.8 3.7 2.9 6 2.9s4.4-1.1 6-2.9M6 17.7c1.6-1.8 3.7-2.9 6-2.9s4.4 1.1 6 2.9" stroke="currentColor" stroke-width="1.6"/></svg>
+    <button class="nav-item" type="button" data-nav="matches">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2"/><path d="M12 3.5v17M3.5 12h17M6 6.3c1.6 1.8 3.7 2.9 6 2.9s4.4-1.1 6-2.9M6 17.7c1.6-1.8 3.7-2.9 6-2.9s4.4 1.1 6 2.9" stroke="currentColor" stroke-width="1.6"/></svg>
       <span>Partidas</span>
     </button>
-    <button class="nav-item" data-nav="players">
-      <svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="7" r="2.3" stroke="currentColor" stroke-width="1.8"/><path d="M15.5 12.2c2.6.4 4.5 2.6 4.5 5.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <button class="nav-item" type="button" data-nav="players">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="7" r="2.3" stroke="currentColor" stroke-width="1.8"/><path d="M15.5 12.2c2.6.4 4.5 2.6 4.5 5.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       <span>Jogadores</span>
     </button>
   </nav>
@@ -166,6 +167,6 @@
   <div class="modal" id="modal-container"></div>
 </div>
 
-<script src="app.js?v=football-v7"></script>
+<script src="app.js?v=football-v8"></script>
 </body>
 </html>

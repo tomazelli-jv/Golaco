@@ -1,10 +1,10 @@
-const CACHE_NAME = 'brickscore-football-v7';
+const CACHE_NAME = 'brickscore-football-v8';
 const APP_SHELL = [
   './',
   './index.html',
-  './style.css',
+  './style.css?v=2',
   './football.css?v=2',
-  './app.js?v=football-v7',
+  './app.js?v=football-v8',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-192.png',
