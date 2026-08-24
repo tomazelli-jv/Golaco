@@ -1,10 +1,10 @@
-const CACHE_NAME = 'golaco-score-v14';
+const CACHE_NAME = 'golaco-score-v15';
 const APP_SHELL = [
   './',
   './index.html',
   './style.css?v=2',
   './football.css?v=2',
-  './theme-football.css?v=4',
+  './theme-football.css?v=5',
   './app.js?v=golaco-v13',
   './manifest.webmanifest',
   './icons/icon.svg',
