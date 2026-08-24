@@ -4,7 +4,11 @@
   "description": "BRICKSCORE para Futebol, Futsal e Society",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "check": "node --check server.js && node --check auth.js && node --check public/app.js"
+  },
+  "engines": {
+    "node": ">=18 <25"
   },
   "license": "ISC",
   "dependencies": {
