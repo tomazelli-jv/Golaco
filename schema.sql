@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS matches (
     teamAIds JSON NOT NULL,
     teamBIds JSON NOT NULL,
     stats JSON NOT NULL,
+    events JSON NULL,
+    durationSeconds INT NOT NULL DEFAULT 0,
     scoreA INT NOT NULL DEFAULT 0,
     scoreB INT NOT NULL DEFAULT 0,
     winner VARCHAR(10) NOT NULL,

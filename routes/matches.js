@@ -14,6 +14,8 @@ function normalizeRows(rows) {
         row.teamAIds = parseJson(row.teamAIds) || [];
         row.teamBIds = parseJson(row.teamBIds) || [];
         row.stats = parseJson(row.stats) || {};
+        row.events = parseJson(row.events) || [];
+        row.durationSeconds = Number(row.durationSeconds) || 0;
         row.mvpTie = parseJson(row.mvpTie);
     });
     return rows;
@@ -38,12 +40,13 @@ router.post("/", async (req, res) => {
         await db.query(`
             INSERT INTO matches
             (id, date, season, modality, format, location, teamA, teamB, teamAIds, teamBIds,
-             stats, scoreA, scoreB, winner, mvpId, mvpTie)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             stats, events, durationSeconds, scoreA, scoreB, winner, mvpId, mvpTie)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             m.id, new Date(m.date), m.season, m.modality, m.format,
             m.location?.trim() || null, m.teamA, m.teamB,
             JSON.stringify(m.teamAIds), JSON.stringify(m.teamBIds), JSON.stringify(m.stats),
+            JSON.stringify(m.events || []), Number(m.durationSeconds) || 0,
             Number(m.scoreA) || 0, Number(m.scoreB) || 0, m.winner || "draw",
             m.mvpId || null, JSON.stringify(m.mvpTie || null)
         ]);
@@ -64,11 +67,12 @@ router.put("/:id", async (req, res) => {
         const [result] = await db.query(`
             UPDATE matches
             SET date=?, season=?, modality=?, format=?, location=?, teamA=?, teamB=?, teamAIds=?, teamBIds=?,
-                stats=?, scoreA=?, scoreB=?, winner=?, mvpId=?, mvpTie=?
+                stats=?, events=?, durationSeconds=?, scoreA=?, scoreB=?, winner=?, mvpId=?, mvpTie=?
             WHERE id=?
         `, [
             new Date(m.date), m.season, m.modality, m.format, m.location?.trim() || null, m.teamA, m.teamB,
             JSON.stringify(m.teamAIds), JSON.stringify(m.teamBIds), JSON.stringify(m.stats),
+            JSON.stringify(m.events || []), Number(m.durationSeconds) || 0,
             Number(m.scoreA) || 0, Number(m.scoreB) || 0, m.winner || "draw",
             m.mvpId || null, JSON.stringify(m.mvpTie || null), req.params.id
         ]);

@@ -23,6 +23,8 @@ function serializeMatch(row) {
         teamAIds: parseJson(row.teamAIds) || [],
         teamBIds: parseJson(row.teamBIds) || [],
         stats: parseJson(row.stats) || {},
+        events: parseJson(row.events) || [],
+        durationSeconds: Number(row.durationSeconds) || 0,
         scoreA: row.scoreA,
         scoreB: row.scoreB,
         winner: row.winner,
@@ -90,14 +92,15 @@ router.post("/restore", async (req, res) => {
             await connection.query(`
                 INSERT INTO matches
                 (id, date, season, modality, format, location, teamA, teamB, teamAIds, teamBIds,
-                 stats, scoreA, scoreB, winner, mvpId, mvpTie)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 stats, events, durationSeconds, scoreA, scoreB, winner, mvpId, mvpTie)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 match.id, new Date(match.date), match.season,
                 match.modality || "society", match.format,
                 match.location?.trim() || null, match.teamA || "Time A", match.teamB || "Time B",
                 JSON.stringify(match.teamAIds), JSON.stringify(match.teamBIds),
-                JSON.stringify(match.stats), Number(match.scoreA) || 0, Number(match.scoreB) || 0,
+                JSON.stringify(match.stats), JSON.stringify(match.events || []), Number(match.durationSeconds) || 0,
+                Number(match.scoreA) || 0, Number(match.scoreB) || 0,
                 match.winner || "draw", match.mvpId || null,
                 JSON.stringify(match.mvpTie || null)
             ]);

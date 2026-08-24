@@ -59,6 +59,8 @@ pool.initialize = async function initializeDatabase() {
         teamAIds JSON NOT NULL,
         teamBIds JSON NOT NULL,
         stats JSON NOT NULL,
+        events JSON NULL,
+        durationSeconds INT NOT NULL DEFAULT 0,
         scoreA INT NOT NULL DEFAULT 0,
         scoreB INT NOT NULL DEFAULT 0,
         winner VARCHAR(10) NOT NULL,
@@ -76,6 +78,14 @@ pool.initialize = async function initializeDatabase() {
     const [locationColumns] = await pool.query("SHOW COLUMNS FROM matches LIKE 'location'");
     if (!locationColumns.length)
         await pool.query("ALTER TABLE matches ADD COLUMN location VARCHAR(160) NULL AFTER format");
+
+    const [eventColumns] = await pool.query("SHOW COLUMNS FROM matches LIKE 'events'");
+    if (!eventColumns.length)
+        await pool.query("ALTER TABLE matches ADD COLUMN events JSON NULL AFTER stats");
+
+    const [durationColumns] = await pool.query("SHOW COLUMNS FROM matches LIKE 'durationSeconds'");
+    if (!durationColumns.length)
+        await pool.query("ALTER TABLE matches ADD COLUMN durationSeconds INT NOT NULL DEFAULT 0 AFTER events");
 };
 
 module.exports = pool;

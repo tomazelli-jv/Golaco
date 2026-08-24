@@ -58,6 +58,19 @@ function validateMatch(match, { requireId = false } = {}) {
       return "Gols, assistências e cartões devem ser números inteiros não negativos.";
   }
 
+  if (match.events !== undefined && match.events !== null) {
+    const validEventTypes = new Set(["goal", "assist", "yellow", "red"]);
+    if (!Array.isArray(match.events)) return "O histórico de eventos é inválido.";
+    for (const event of match.events) {
+      if (!event || typeof event !== "object" || !isId(event.id) ||
+          !validEventTypes.has(event.type) || !roster.includes(event.playerId) ||
+          !["A", "B"].includes(event.team) || !isNonNegativeInteger(event.at))
+        return "O histórico contém um evento inválido.";
+    }
+  }
+  if (match.durationSeconds !== undefined && !isNonNegativeInteger(match.durationSeconds))
+    return "A duração da partida é inválida.";
+
   if (!isNonNegativeInteger(match.scoreA) || !isNonNegativeInteger(match.scoreB))
     return "O placar deve usar números inteiros não negativos.";
   const expectedWinner = match.scoreA === match.scoreB ? "draw" : match.scoreA > match.scoreB ? "A" : "B";

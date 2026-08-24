@@ -409,6 +409,7 @@ const Modal = {
     document.getElementById('modal-overlay').classList.remove('hidden');
   },
   close() {
+    if (typeof LiveMatch !== 'undefined') LiveMatch.stop();
     document.getElementById('modal-overlay').classList.add('hidden');
     document.getElementById('modal-container').innerHTML = '';
   },
@@ -517,6 +518,8 @@ const MatchWizard = {
         teamAIds: [...(editing.teamAIds || [])],
         teamBIds: [...(editing.teamBIds || [])],
         statsMap: JSON.parse(JSON.stringify(editing.stats || {})),
+        events: JSON.parse(JSON.stringify(editing.events || [])),
+        durationSeconds: Number(editing.durationSeconds) || 0,
         scoreA: Number(editing.scoreA) || 0,
         scoreB: Number(editing.scoreB) || 0,
         scoreAManual: true,
@@ -538,6 +541,8 @@ const MatchWizard = {
         teamAIds: [],
         teamBIds: [],
         statsMap: {},
+        events: [],
+        durationSeconds: 0,
         scoreA: 0, scoreB: 0,
         scoreAManual: false, scoreBManual: false,
         search: ''
@@ -779,6 +784,10 @@ const MatchWizard = {
     }).join('');
 
     body.innerHTML = `
+      <div class="live-launch-card">
+        <div><strong>Registrar durante o jogo</strong><span>Use cronômetro, eventos rápidos e histórico ao vivo.</span></div>
+        <button class="btn-chip" type="button" id="mw-live">Modo ao vivo</button>
+      </div>
       <div class="score-preview">
         <div class="side"><div class="tname">${Utils.escapeHtml(s.teamAName)}</div><input class="final-score-input" id="mw-scoreA" type="number" min="0" value="${s.scoreA}"></div>
         <div class="vs">VS</div>
@@ -791,6 +800,7 @@ const MatchWizard = {
     const scoreA = document.getElementById('mw-scoreA');
     const scoreB = document.getElementById('mw-scoreB');
     const note = document.getElementById('mw-score-note');
+    document.getElementById('mw-live').onclick = () => LiveMatch.open();
 
     const recalc = () => {
       body.querySelectorAll('.football-stat-row').forEach((row) => {
@@ -864,6 +874,8 @@ const MatchWizard = {
       teamAIds: s.teamAIds,
       teamBIds: s.teamBIds,
       stats,
+      events: s.events || [],
+      durationSeconds: Number(s.durationSeconds) || 0,
       scoreA: s.scoreA,
       scoreB: s.scoreB,
       winner,
@@ -874,6 +886,159 @@ const MatchWizard = {
     Modal.close();
     Router.go('matches');
     Toast.show('Partida salva!');
+  }
+};
+
+const LiveMatch = {
+  interval: null,
+  running: false,
+  startedAt: 0,
+
+  elapsed() {
+    const base = Number(MatchWizard.state?.durationSeconds) || 0;
+    return base + (this.running ? Math.floor((Date.now() - this.startedAt) / 1000) : 0);
+  },
+
+  formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const remainder = (seconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${remainder}`;
+  },
+
+  open() {
+    const s = MatchWizard.state;
+    if (!s) return;
+    if (!Array.isArray(s.events)) s.events = [];
+    this.running = true;
+    this.startedAt = Date.now();
+    document.getElementById('mw-title').textContent = 'Partida ao vivo';
+    this.paint();
+    this.stopInterval();
+    this.interval = setInterval(() => this.updateClock(), 1000);
+  },
+
+  stopInterval() {
+    if (this.interval) clearInterval(this.interval);
+    this.interval = null;
+  },
+
+  stop() {
+    if (this.running && MatchWizard.state) MatchWizard.state.durationSeconds = this.elapsed();
+    this.running = false;
+    this.stopInterval();
+  },
+
+  toggleClock() {
+    const s = MatchWizard.state;
+    if (this.running) {
+      s.durationSeconds = this.elapsed();
+      this.running = false;
+    } else {
+      this.startedAt = Date.now();
+      this.running = true;
+    }
+    this.paint();
+  },
+
+  updateClock() {
+    const clock = document.getElementById('live-clock');
+    if (clock) clock.textContent = this.formatTime(this.elapsed());
+  },
+
+  teamFor(playerId) {
+    return MatchWizard.state.teamAIds.includes(playerId) ? 'A' : 'B';
+  },
+
+  syncScore() {
+    const s = MatchWizard.state;
+    s.scoreA = s.teamAIds.reduce((sum, id) => sum + Stats.normalizeStat(s.statsMap[id]).goals, 0);
+    s.scoreB = s.teamBIds.reduce((sum, id) => sum + Stats.normalizeStat(s.statsMap[id]).goals, 0);
+    s.scoreAManual = false;
+    s.scoreBManual = false;
+  },
+
+  addEvent(playerId, type) {
+    const s = MatchWizard.state;
+    const stat = Stats.normalizeStat(s.statsMap[playerId]);
+    const field = ({ goal: 'goals', assist: 'assists', yellow: 'yellowCards', red: 'redCards' })[type];
+    if (!field) return;
+    stat[field] += 1;
+    s.statsMap[playerId] = stat;
+    s.events.push({ id: Utils.uid(), type, playerId, team: this.teamFor(playerId), at: this.elapsed() });
+    this.syncScore();
+    this.paint();
+  },
+
+  undo() {
+    const s = MatchWizard.state;
+    const event = s.events.pop();
+    if (!event) return;
+    const stat = Stats.normalizeStat(s.statsMap[event.playerId]);
+    const field = ({ goal: 'goals', assist: 'assists', yellow: 'yellowCards', red: 'redCards' })[event.type];
+    if (field) stat[field] = Math.max(0, stat[field] - 1);
+    s.statsMap[event.playerId] = stat;
+    this.syncScore();
+    this.paint();
+  },
+
+  playerControls(ids) {
+    return ids.map((id) => {
+      const player = Players.byId(id);
+      const stat = Stats.normalizeStat(MatchWizard.state.statsMap[id]);
+      return `<div class="live-player-row">
+        <div class="live-player-info">${Utils.avatarHtml(player || { name: '?' }, 'sm')}<div><strong>${Utils.escapeHtml(player?.name || 'Jogador')}</strong><span>${stat.goals} G · ${stat.assists} A · ${stat.yellowCards} CA · ${stat.redCards} CV</span></div></div>
+        <div class="live-actions">
+          <button type="button" data-live-player="${id}" data-live-type="goal">Gol</button>
+          <button type="button" data-live-player="${id}" data-live-type="assist">Assist.</button>
+          <button type="button" data-live-player="${id}" data-live-type="yellow">CA</button>
+          <button type="button" data-live-player="${id}" data-live-type="red">CV</button>
+        </div>
+      </div>`;
+    }).join('');
+  },
+
+  eventLabel(event) {
+    return ({ goal: 'Gol', assist: 'Assistência', yellow: 'Cartão amarelo', red: 'Cartão vermelho' })[event.type] || 'Evento';
+  },
+
+  paint() {
+    const s = MatchWizard.state;
+    const body = document.getElementById('mw-body');
+    const footer = document.getElementById('mw-footer');
+    if (!body || !footer) return;
+    const recent = s.events.slice().reverse().slice(0, 10);
+    body.innerHTML = `
+      <div class="live-scoreboard">
+        <div><span>${Utils.escapeHtml(s.teamAName)}</span><strong>${s.scoreA}</strong></div>
+        <div class="live-clock-wrap"><span id="live-clock">${this.formatTime(this.elapsed())}</span><button type="button" id="live-clock-toggle">${this.running ? 'Pausar' : 'Continuar'}</button></div>
+        <div><span>${Utils.escapeHtml(s.teamBName)}</span><strong>${s.scoreB}</strong></div>
+      </div>
+      <div class="section-sub">${Utils.escapeHtml(s.teamAName)}</div>
+      <div class="live-roster">${this.playerControls(s.teamAIds)}</div>
+      <div class="section-sub">${Utils.escapeHtml(s.teamBName)}</div>
+      <div class="live-roster">${this.playerControls(s.teamBIds)}</div>
+      <div class="live-history-head"><div class="section-sub">Eventos</div><button type="button" class="btn-ghost" id="live-undo" ${s.events.length ? '' : 'disabled'}>Desfazer último</button></div>
+      <div class="live-history">${recent.length ? recent.map((event) => {
+        const player = Players.byId(event.playerId);
+        return `<div><time>${this.formatTime(event.at)}</time><span>${this.eventLabel(event)}</span><strong>${Utils.escapeHtml(player?.name || 'Jogador')}</strong></div>`;
+      }).join('') : '<p>Nenhum evento registrado.</p>'}</div>`;
+    footer.innerHTML = `<button class="btn-secondary" type="button" id="live-back">Voltar</button><button class="btn-primary" type="button" id="live-finish" style="flex:1;">Finalizar partida</button>`;
+    document.getElementById('live-clock-toggle').onclick = () => this.toggleClock();
+    document.getElementById('live-undo').onclick = () => this.undo();
+    body.querySelectorAll('[data-live-player]').forEach((button) => button.onclick = () => this.addEvent(button.dataset.livePlayer, button.dataset.liveType));
+    document.getElementById('live-back').onclick = () => {
+      this.stop();
+      document.getElementById('mw-title').textContent = 'Estatísticas';
+      MatchWizard.renderStep();
+    };
+    document.getElementById('live-finish').onclick = async () => {
+      this.stop();
+      const button = document.getElementById('live-finish');
+      button.disabled = true;
+      button.textContent = 'Salvando...';
+      try { await MatchWizard.save(); }
+      catch (err) { Toast.show(err.message || 'Erro ao salvar.'); button.disabled = false; button.textContent = 'Finalizar partida'; }
+    };
   }
 };
 
@@ -1047,6 +1212,10 @@ const UI = {
         <div class="row-sub">${s.goals} gols · ${s.assists} ast · ${s.yellowCards} CA · ${s.redCards} CV</div></div>
       </div>`;
     }).join('');
+    const timeline = Array.isArray(m.events) ? m.events.slice().reverse().map((event) => {
+      const player = Players.byId(event.playerId);
+      return `<div class="live-detail-event"><time>${LiveMatch.formatTime(Number(event.at) || 0)}</time><span>${LiveMatch.eventLabel(event)}</span><strong>${Utils.escapeHtml(player?.name || 'Jogador')}</strong></div>`;
+    }).join('') : '';
 
     wrap.innerHTML = `
       <div class="football-match-hero">
@@ -1055,6 +1224,7 @@ const UI = {
       </div>
       <div class="section-sub">${Utils.escapeHtml(m.teamA)}</div><div class="card list-card">${roster(m.teamAIds)}</div>
       <div class="section-sub">${Utils.escapeHtml(m.teamB)}</div><div class="card list-card">${roster(m.teamBIds)}</div>
+      ${timeline ? `<div class="section-sub">Linha do tempo · ${LiveMatch.formatTime(Number(m.durationSeconds) || 0)}</div><div class="card live-detail-history">${timeline}</div>` : ''}
       <div class="football-detail-actions">
         <button class="btn-secondary" id="md-edit">Editar partida</button>
         <button class="btn-danger" id="md-delete">Excluir</button>
